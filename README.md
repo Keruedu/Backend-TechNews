@@ -10,17 +10,30 @@
     - [2. Posts](#2-posts)
     - [3. Comments](#3-comments)
     - [4. Tags](#4-tags)
-    - [5. Notifications](#5-notifications)
-    - [6. AdminLogs](#6-adminlogs)
+    - [5. Categories](#5-categories)
+    - [6. Notifications](#6-notifications)
   - [Mối quan hệ giữa các collection](#mối-quan-hệ-giữa-các-collection)
-    - [Users ↔ Posts](#users--posts)
-    - [Posts ↔ Comments](#posts--comments)
-    - [Posts ↔ Categories](#posts--categories)
-    - [Users ↔ Notifications](#users--notifications)
+    - [1. **Users ↔ Posts**](#1-users--posts)
+    - [2. **Posts ↔ Comments**](#2-posts--comments)
+    - [3. **Posts ↔ Categories**](#3-posts--categories)
+    - [4. **Posts ↔ Tags**](#4-posts--tags)
+    - [5. **Users ↔ Notifications**](#5-users--notifications)
+  - [Sơ đồ mối quan hệ](#sơ-đồ-mối-quan-hệ)
   - [Indexes](#indexes)
     - [Index đơn lẻ:](#index-đơn-lẻ)
-    - [Compound Index:](#compound-index)
+    - [Index kết hợp:](#index-kết-hợp)
   - [Câu lệnh cần chạy](#câu-lệnh-cần-chạy)
+  - [Các lưu ý khi triển khai cơ sở dữ liệu](#các-lưu-ý-khi-triển-khai-cơ-sở-dữ-liệu)
+    - [1. Tài khoản test (hiện tại có 2 tài khoản cho mỗi vai trò):](#1-tài-khoản-test-hiện-tại-có-2-tài-khoản-cho-mỗi-vai-trò)
+    - [2. Sử dụng BFS (Breadth-First Search) để tính số comment con:](#2-sử-dụng-bfs-breadth-first-search-để-tính-số-comment-con)
+    - [3. Tính số comment của bài viết:](#3-tính-số-comment-của-bài-viết)
+    - [4. Cập nhật và duy trì mối quan hệ giữa các collection:](#4-cập-nhật-và-duy-trì-mối-quan-hệ-giữa-các-collection)
+    - [5. Quản lý trạng thái bài viết và bình luận:](#5-quản-lý-trạng-thái-bài-viết-và-bình-luận)
+    - [6. Quản lý thông báo (notifications):](#6-quản-lý-thông-báo-notifications)
+    - [7. Quản lý quyền truy cập và vai trò:](#7-quản-lý-quyền-truy-cập-và-vai-trò)
+    - [8. Cập nhật mối quan hệ giữa các collection khi thay đổi dữ liệu:](#8-cập-nhật-mối-quan-hệ-giữa-các-collection-khi-thay-đổi-dữ-liệu)
+    - [9. Cải thiện hiệu suất khi truy vấn:](#9-cải-thiện-hiệu-suất-khi-truy-vấn)
+  - [Cấu trúc cây thư mục tham khảo (tạm thời)](#cấu-trúc-cây-thư-mục-tham-khảo-tạm-thời)
 
 ---
 
@@ -71,14 +84,15 @@ Lưu trữ thông tin về các bài viết do người dùng gửi và được
   "thumbnail": "String",
   "content": "String",
   "authorId": "ObjectId",
-  "tags": ["String"],
+  "categoryId": "ObjectId",
+  "tagsId": ["ObjectId"],
   "createdAt": "Date",
   "updatedAt": "Date",
   "upvotesCount": "Number",
   "downvotesCount": "Number",
-  "commentsID": ["ObjectId"],
+  "commentsId": ["ObjectId"],
   "totalCommentsCount": "Number",
-  "bookmarkedByAcoountId": ["ObjectId"],
+  "bookmarkedByAccountId": ["ObjectId"],
   "status": "String",
   "isDeleted": "Boolean"
 }
@@ -111,25 +125,34 @@ Theo dõi các bình luận được đăng trên bài viết, bao gồm cả c�
 ### 4. Tags
 Giúp phân loại các bài viết để dễ dàng tìm kiếm và tổ chức.
 
-**Tags tạm thời:**
-- Web & Mobile Development
-- AI, Data & Machine Learning
-- Backend & Databases
-- Blockchain & Cybersecurity
-- Others (Miscellaneous Tech)
-
 **Cấu trúc:**
 ```json
 {
-  "_id": "ObjectId",
-  "name": "String",
-  "slug": "String"
+  "_id": "ObjectId",        // ID duy nhất của tag
+  "name": "String",         // Tên tag
+  "slug": "String",         // Slug thân thiện với URL
+  "isActive": "Boolean"     // Trạng thái hoạt động của tag (True = hoạt động, False = không hoạt động)
 }
 ```
 
 ---
 
-### 5. Notifications
+### 5. Categories
+Giúp phân loại các bài viết để dễ dàng tìm kiếm và tổ chức.
+
+**Cấu trúc:**
+```json
+{
+  "_id": "ObjectId",        // ID duy nhất của category
+  "name": "String",         // Tên của category
+  "slug": "String",         // Slug thân thiện với URL
+  "isActive": "Boolean"     // Trạng thái hoạt động của category (True = hoạt động, False = không hoạt động)
+}
+```
+
+---
+
+### 6. Notifications
 Gửi thông báo đến người dùng dựa trên các tương tác cụ thể.
 
 **Loại thông báo hỗ trợ:**
@@ -152,38 +175,69 @@ Gửi thông báo đến người dùng dựa trên các tương tác cụ thể
 
 ---
 
-### 6. AdminLogs
-Ghi lại các hành động của Admin để phục vụ mục đích quản lý và kiểm tra.
+## Mối quan hệ giữa các collection
 
-**Cấu trúc:**
-```json
-{
-  "_id": "ObjectId",
-  "adminId": "ObjectId",
-  "action": "String",
-  "target": "ObjectId",
-  "description": "String",
-  "createdAt": "Date"
-}
-```
+### 1. **Users ↔ Posts**
+- **Mối quan hệ**: Một người dùng có thể viết nhiều bài viết, nhưng mỗi bài viết chỉ có một tác giả (user).
+- **Chi tiết**:
+  - Một **bài viết** (post) thuộc về một **người dùng** (authorId).
+  - Một **người dùng** có thể **bookmark** hoặc **upvote** nhiều bài viết. Các trường như `bookmarkedPosts`, `upvotedPosts`, và `downvotedPosts` trong collection **Accounts** lưu trữ các bài viết mà người dùng quan tâm hoặc đã đánh giá.
 
 ---
 
-## Mối quan hệ giữa các collection
+### 2. **Posts ↔ Comments**
+- **Mối quan hệ**: Một bài viết có thể có nhiều bình luận. Mỗi bình luận sẽ thuộc về một bài viết cụ thể.
+- **Chi tiết**:
+  - Một **bài viết** có thể có nhiều **bình luận** (comments), được lưu trữ trong trường `commentsId` của collection **Posts**.
+  - Mỗi **bình luận** thuộc về một **bài viết** (postId) và một **người dùng** (authorId). Trường `postId` trong collection **Comments** trỏ tới bài viết gốc mà bình luận này liên quan đến.
+  - **Bình luận có thể có bình luận con** (child comments), được lưu trữ trong trường `childCommentsId`, giúp theo dõi mối quan hệ giữa các bình luận lồng nhau.
 
-### Users ↔ Posts
-- Mỗi bài viết thuộc về một người dùng (author).
-- Một người dùng có thể bookmark hoặc upvote nhiều bài viết.
+---
 
-### Posts ↔ Comments
-- Một bài viết có thể có nhiều bình luận.
-- Mỗi bình luận thuộc về một bài viết và một người dùng.
+### 3. **Posts ↔ Categories**
+- **Mối quan hệ**: Một bài viết thuộc về một danh mục (category).
+- **Chi tiết**:
+  - Mỗi **bài viết** có một trường `categoryId`, trỏ tới một **danh mục** (category) trong collection **Categories**.
+  - **Danh mục** giúp phân loại bài viết để dễ dàng tìm kiếm và tổ chức bài viết trong hệ thống.
 
-### Posts ↔ Categories
-- Mỗi bài viết thuộc về một danh mục.
+---
 
-### Users ↔ Notifications
-- Mỗi thông báo thuộc về một người dùng.
+### 4. **Posts ↔ Tags**
+- **Mối quan hệ**: Một bài viết có thể có nhiều tag, giúp phân loại bài viết.
+- **Chi tiết**:
+  - Mỗi **bài viết** có một mảng `tagsId`, trỏ tới các **tags** trong collection **Tags**.
+  - **Tags** giúp phân loại bài viết để dễ dàng tìm kiếm và tổ chức bài viết trong hệ thống.
+
+---
+
+### 5. **Users ↔ Notifications**
+- **Mối quan hệ**: Mỗi thông báo (notification) thuộc về một người dùng cụ thể.
+- **Chi tiết**:
+  - Mỗi **thông báo** (notification) có trường `userId`, trỏ tới người dùng (user) mà thông báo đó liên quan.
+  - Thông báo có thể là về các sự kiện như nhận **upvote** trên bài viết hoặc bình luận của người dùng, nhận **bình luận mới** trên bài viết của người dùng, hoặc thông báo về **phê duyệt hoặc từ chối bài viết**.
+  - Trường `isRead` giúp theo dõi trạng thái đã đọc hay chưa của thông báo.
+
+---
+
+## Sơ đồ mối quan hệ
+
+1. **Users ↔ Posts**:
+   - Một **user** có thể tạo nhiều **post**.
+   - Một **post** có một **author** (user).
+   
+2. **Posts ↔ Comments**:
+   - Một **post** có thể có nhiều **comments**.
+   - Mỗi **comment** thuộc về một **post** và một **user**.
+   
+3. **Posts ↔ Categories**:
+   - Một **post** thuộc về một **category**.
+   
+4. **Posts ↔ Tags**:
+   - Một **post** có thể có nhiều **tags**.
+   
+5. **Users ↔ Notifications**:
+   - Một **user** có thể nhận nhiều **notifications**.
+   - Một **notification** thuộc về một **user**.
 
 ---
 
@@ -194,7 +248,7 @@ Ghi lại các hành động của Admin để phục vụ mục đích quản l
 - **Posts**: status, tags, category.
 - **Comments**: postId.
 
-### Compound Index:
+### Index kết hợp:
 - **Posts**: `{ category: 1, createdAt: -1 }` để phân loại và sắp xếp bài viết.
 
 ---
@@ -206,12 +260,12 @@ Ghi lại các hành động của Admin để phục vụ mục đích quản l
 npm install migrate-mongo --save-dev
 ```
 
-2. Khởi tạo thư mục migrate-mongo:
+2. Khởi tạo thư mục **migrate-mongo**:
 ```bash
 npx migrate-mongo init
 ```
 
-3. Cài đặt dotenv:
+3. Cài đặt **dotenv**:
 ```bash
 npm install dotenv --save
 ```
@@ -231,8 +285,92 @@ npx migrate-mongo up -f src\config\migrate-mongo-config.js
 npx migrate-mongo down -f src\config\migrate-mongo-config.js
 ```
 
-7. Cài đặt cloudinary:
+7. Cài đặt **cloudinary**:
 ```bash
 npm install cloudinary
 ```
 
+---
+
+## Các lưu ý khi triển khai cơ sở dữ liệu
+
+### 1. Tài khoản test (hiện tại có 2 tài khoản cho mỗi vai trò):
+- **Username**: Viết thường toàn bộ + số thứ tự từ 00:
+  - Ví dụ: `user00`, `user01` cho vai trò người dùng, `admin00`, `admin01` cho vai trò admin, v.v.
+- **Password**: Chữ cái đầu viết hoa, còn lại viết thường + `@123`:
+  - Ví dụ: `Admin@123`, v.v. (Lưu trong database là chuỗi bcrypt 12 byte).
+- **Role**: Lưu trong database viết hoa toàn bộ.
+  - Ví dụ: `ADMIN`, v.v.
+
+### 2. Sử dụng BFS (Breadth-First Search) để tính số comment con:
+- Khi có một comment có phản hồi (comment con), sử dụng thuật toán BFS để duyệt tất cả các comment con của comment đó.
+- Lưu kết quả vào trường `descendantCommentsCount` trong mỗi comment.
+- **Lưu ý**: Cập nhật lại số lượng comment con mỗi khi có sự thay đổi (thêm hoặc xóa comment).
+
+### 3. Tính số comment của bài viết:
+- Tổng số comment của bài viết = số comment trực tiếp + số comment con (tính đệ quy).
+- Cập nhật lại trường `totalCommentsCount` trong collection **Posts**.
+- **Lưu ý**: Mỗi khi có sự thay đổi về comment (thêm, sửa, xóa), cần cập nhật lại số comment tổng của bài viết.
+
+### 4. Cập nhật và duy trì mối quan hệ giữa các collection:
+- Đảm bảo các quan hệ giữa các collection (Posts, Comments, Users, Categories, Tags) được duy trì đồng bộ khi thực hiện các thao tác CRUD.
+- Khi xóa một bài viết, xóa tất cả bình luận liên quan và cập nhật số liệu tương ứng trong các collection khác.
+- Khi thay đổi trạng thái bài viết (ví dụ: từ "pending" sang "published"), cần cập nhật thông báo (notifications) cho người dùng liên quan.
+
+### 5. Quản lý trạng thái bài viết và bình luận:
+- Trường `isDeleted` trong collection **Posts** và **Comments** cần được sử dụng để xác định xem một bài viết hoặc bình luận có bị xóa hay không. Tuy nhiên, thay vì xóa vĩnh viễn, có thể chỉ cần đánh dấu là đã xóa để giữ lại dữ liệu lịch sử.
+- **Lưu ý**: Đảm bảo rằng mỗi khi cập nhật trường `isDeleted`, các tính toán như số comment phải được cập nhật lại cho chính xác.
+
+### 6. Quản lý thông báo (notifications):
+- Mỗi khi có thay đổi về trạng thái bài viết hoặc bình luận (như được upvote, bình luận mới), cần gửi thông báo đến người dùng liên quan.
+- Trường `isRead` trong collection **Notifications** nên được cập nhật mỗi khi người dùng xem thông báo, để theo dõi trạng thái đọc của thông báo.
+
+### 7. Quản lý quyền truy cập và vai trò:
+- Đảm bảo rằng các quyền truy cập của từng vai trò (Admin, Manager, User) được kiểm soát chặt chẽ, ví dụ:
+  - **Admin**: Có quyền duyệt bài, xóa bài, xem và quản lý thông báo.
+  - **Manager**: Có quyền duyệt bài và quản lý bài viết nhưng không có quyền quản lý người dùng.
+  - **User**: Có quyền viết bài, bình luận, upvote, downvote nhưng không thể duyệt bài hoặc quản lý thông báo của người khác.
+- Đảm bảo kiểm tra và áp dụng các quyền truy cập mỗi khi thực hiện các thao tác CRUD.
+
+### 8. Cập nhật mối quan hệ giữa các collection khi thay đổi dữ liệu:
+- Khi thay đổi bất kỳ thông tin nào trong các collection (ví dụ: sửa bài viết, thêm bình luận), nhớ cập nhật các liên kết giữa các collection, ví dụ: cập nhật số lượng comment trong bài viết khi có bình luận mới, hoặc cập nhật thông tin người dùng khi thay đổi tài khoản.
+
+### 9. Cải thiện hiệu suất khi truy vấn:
+- Các truy vấn như tính toán số comment con và tổng số comment có thể tiêu tốn tài nguyên nếu không được tối ưu. Hãy cân nhắc việc sử dụng các cơ chế cache hoặc chỉ lưu trữ tổng số và số lượng comment con trong mỗi document để giảm tải truy vấn khi cần tính toán.
+
+---
+
+## Cấu trúc cây thư mục tham khảo (tạm thời)
+
+project/
+├── src/                            # Mã nguồn chính
+│   ├── config/                     # Cấu hình ứng dụng
+│   │   ├── cloudinary-config.js    # Cấu hình Cloudinary
+│   │   ├── migrate-mongo-config.js # Cấu hình migrate-mongo
+│   │   └── database.js             # Cấu hình MongoDB hoặc các database khác
+│   ├── routes/                     # Các tệp route (chia nhỏ theo module)
+│   │   ├── posts.js                # Route liên quan đến bài viết
+│   │   ├── users.js                # Route liên quan đến người dùng
+│   │   └── index.js                # Import và kết nối các route
+│   ├── controllers/                # Xử lý logic cho route
+│   │   ├── postController.js       # Controller cho bài viết
+│   │   └── userController.js       # Controller cho người dùng
+│   ├── models/                     # Định nghĩa schema và model của database
+│   │   ├── postModel.js
+│   │   └── userModel.js
+│   ├── services/                   # Xử lý logic phức tạp hoặc gọi API bên thứ ba
+│   │   ├── cloudinaryService.js
+│   │   └── emailService.js
+│   ├── middlewares/                # Các middleware, ví dụ: xác thực, lỗi
+│   │   ├── authMiddleware.js
+│   │   └── errorHandler.js
+│   ├── utils/                      # Các tiện ích hoặc helper
+│   │   ├── logger.js               # Ghi log
+│   │   ├── validator.js            # Các hàm kiểm tra dữ liệu
+│   │   └── constants.js            # Định nghĩa các hằng số
+│   └── app.js                      # Cấu hình ứng dụng Express chính
+├── .env                            # Cấu hình môi trường (không commit vào git)
+├── .gitignore                      # Tệp để bỏ qua các tệp/thư mục khi commit
+├── package.json                    # Quản lý dependencies và scripts
+├── README.md                       # Tài liệu dự án
+└── server.js                       # Điểm bắt đầu của ứng dụng (khởi chạy server)
