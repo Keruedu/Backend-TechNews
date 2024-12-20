@@ -33,7 +33,6 @@
     - [7. Quản lý quyền truy cập và vai trò:](#7-quản-lý-quyền-truy-cập-và-vai-trò)
     - [8. Cập nhật mối quan hệ giữa các collection khi thay đổi dữ liệu:](#8-cập-nhật-mối-quan-hệ-giữa-các-collection-khi-thay-đổi-dữ-liệu)
     - [9. Cải thiện hiệu suất khi truy vấn:](#9-cải-thiện-hiệu-suất-khi-truy-vấn)
-  - [Cấu trúc cây thư mục tham khảo (tạm thời)](#cấu-trúc-cây-thư-mục-tham-khảo-tạm-thời)
 
 ---
 
@@ -337,40 +336,3 @@ npm install cloudinary
 
 ### 9. Cải thiện hiệu suất khi truy vấn:
 - Các truy vấn như tính toán số comment con và tổng số comment có thể tiêu tốn tài nguyên nếu không được tối ưu. Hãy cân nhắc việc sử dụng các cơ chế cache hoặc chỉ lưu trữ tổng số và số lượng comment con trong mỗi document để giảm tải truy vấn khi cần tính toán.
-
----
-
-## Cấu trúc cây thư mục tham khảo (tạm thời)
-
-project/
-├── src/                            # Mã nguồn chính
-│   ├── config/                     # Cấu hình ứng dụng
-│   │   ├── cloudinary-config.js    # Cấu hình Cloudinary
-│   │   ├── migrate-mongo-config.js # Cấu hình migrate-mongo
-│   │   └── database.js             # Cấu hình MongoDB hoặc các database khác
-│   ├── routes/                     # Các tệp route (chia nhỏ theo module)
-│   │   ├── posts.js                # Route liên quan đến bài viết
-│   │   ├── users.js                # Route liên quan đến người dùng
-│   │   └── index.js                # Import và kết nối các route
-│   ├── controllers/                # Xử lý logic cho route
-│   │   ├── postController.js       # Controller cho bài viết
-│   │   └── userController.js       # Controller cho người dùng
-│   ├── models/                     # Định nghĩa schema và model của database
-│   │   ├── postModel.js
-│   │   └── userModel.js
-│   ├── services/                   # Xử lý logic phức tạp hoặc gọi API bên thứ ba
-│   │   ├── cloudinaryService.js
-│   │   └── emailService.js
-│   ├── middlewares/                # Các middleware, ví dụ: xác thực, lỗi
-│   │   ├── authMiddleware.js
-│   │   └── errorHandler.js
-│   ├── utils/                      # Các tiện ích hoặc helper
-│   │   ├── logger.js               # Ghi log
-│   │   ├── validator.js            # Các hàm kiểm tra dữ liệu
-│   │   └── constants.js            # Định nghĩa các hằng số
-│   └── app.js                      # Cấu hình ứng dụng Express chính
-├── .env                            # Cấu hình môi trường (không commit vào git)
-├── .gitignore                      # Tệp để bỏ qua các tệp/thư mục khi commit
-├── package.json                    # Quản lý dependencies và scripts
-├── README.md                       # Tài liệu dự án
-└── server.js                       # Điểm bắt đầu của ứng dụng (khởi chạy server)
