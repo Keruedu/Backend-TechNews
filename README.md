@@ -223,12 +223,12 @@ npx migrate-mongo create create-core-collections
 
 5. Chạy migration:
 ```bash
-migrate-mongo up
+npx migrate-mongo up -f src\config\migrate-mongo-config.js
 ```
 
 6. Hoàn tác migration (nếu cần):
 ```bash
-migrate-mongo down
+npx migrate-mongo down -f src\config\migrate-mongo-config.js
 ```
 
 7. Cài đặt cloudinary:
