@@ -1,8 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import { connectDB } from './src/config/database.js'
+import { connectDB } from './src/config/database.js';
 import path from 'path';
-// import productRoutes from './routes/product.route.js';
+import postRoutes from './src/routes/posts.js'
 
 dotenv.config();
 
@@ -13,7 +13,7 @@ const __dirname = path.resolve()
 
 app.use(express.json());    // allows us to accept JSON data in the req.body
 
-// app.use("/api/products", productRoutes);
+app.use("/api/posts", postRoutes);
 
 if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "/frontend/dist")));
