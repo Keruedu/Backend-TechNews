@@ -1,9 +1,25 @@
 {
   "devDependencies": {
-    "migrate-mongo": "^11.0.0"
+    "migrate-mongo": "^11.0.0",
+    "nodemon": "^3.1.9"
   },
   "dependencies": {
     "cloudinary": "^2.5.1",
-    "dotenv": "^16.4.7"
-  }
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.2"
+  },
+  "name": "backend-technews",
+  "version": "1.0.0",
+  "description": "- [Cấu trúc cơ sở dữ liệu TechNews](#cấu-trúc-cơ-sở-dữ-liệu-technews)\r   - [Mục lục](#mục-lục)\r   - [Tổng quan](#tổng-quan)\r   - [Cấu trúc các collection](#cấu-trúc-các-collection)\r     - [1. Accounts](#1-accounts)\r     - [2. Posts](#2-posts)\r     - [3. Comments](#3-comments)\r     - [4. Tags](#4-tags)\r     - [5. Notifications](#5-notifications)\r     - [6. AdminLogs](#6-adminlogs)\r   - [Mối quan hệ giữa các collection](#mối-quan-hệ-giữa-các-collection)\r     - [Users ↔ Posts](#users--posts)\r     - [Posts ↔ Comments](#posts--comments)\r     - [Posts ↔ Categories](#posts--categories)\r     - [Users ↔ Notifications](#users--notifications)\r   - [Indexes](#indexes)\r     - [Index đơn lẻ:](#index-đơn-lẻ)\r     - [Compound Index:](#compound-index)\r   - [Câu lệnh cần chạy](#câu-lệnh-cần-chạy)",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type":"module"
 }
