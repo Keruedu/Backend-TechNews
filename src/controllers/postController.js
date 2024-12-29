@@ -12,8 +12,9 @@ export const getPosts = async (req, res) => {
 }
 
 export const createPost = async (req, res) => {
-    const post = req.body; // user will send this data 
-    
+    const post = req.body;
+    post.authorId = req.user._id; // Gán ID người dùng từ middleware
+
     if (!post.title || !post.thumbnail || !post.content) {
         return res.status(400).json({ success:false, message: 'Please enter all fields' });
     }
@@ -61,3 +62,17 @@ export const deletePost = async (req, res) => {
     }
 }
 
+export const getPostComments = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const post = await Post.findById(id).populate('commentsID');
+        if (!post) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+        res.status(200).json({ success: true, data: post.commentsID });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+}
