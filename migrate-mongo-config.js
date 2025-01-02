@@ -1,4 +1,5 @@
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
 const config = {
   mongodb: {
@@ -18,4 +19,4 @@ const config = {
   moduleSystem: 'commonjs',
 };
 
-module.exports = config;
+export default config;
