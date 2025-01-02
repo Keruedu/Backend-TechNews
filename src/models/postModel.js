@@ -1,22 +1,21 @@
 import mongoose from "mongoose";
 
-const blogSchema = new mongoose.Schema({
+const postSchema = new mongoose.Schema({
   title: { type: String, required: true },
   thumbnail: { type: String, required: true },
   content: { type: String, required: true },
-  authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true }, // Thêm ref: 'Account'
+  authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Account', required: true },
   tags: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
   upvotesCount: { type: Number, default: 0 },
   downvotesCount: { type: Number, default: 0 },
-  commentsID: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }], // Thêm ref: 'Comment'
   totalCommentsCount: { type: Number, default: 0 },
-  bookmarkedByAccountId: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Account' }], // Thêm ref: 'Account'
-  status: { type: String, default: 'active' },
+  bookmarkedByAccountId: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Account' }],
+  status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED'], default: 'PENDING' },
   isDeleted: { type: Boolean, default: false }
 });
 
-const Post = mongoose.model("Post", blogSchema);
+const Post = mongoose.model("Post", postSchema);
 
 export default Post;
