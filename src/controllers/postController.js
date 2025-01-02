@@ -1,6 +1,52 @@
 import Post from "../models/postModel.js";
 import mongoose from 'mongoose';
 
+export const searchPosts = async (req, res) => {
+    try {
+        const size = parseInt(req.query.size) || 10;  // Default size is 10
+        const page = parseInt(req.query.page) || 1;  // Default page number is 1
+        const sortField = req.query.sortField || 'createdAt';  // Default sorting is by createdAt
+        const sortType = req.query.sortType === 'desc' ? -1 : 1;  // Default sorting type is ascending
+
+        // Building the filter object from the request body
+        const filter = req.body;
+
+        // Handling search for fields that might need regex
+        // TODO: Add more search filter for other fields
+        if (filter.title) {     // Filter for title
+            filter.title = { $regex: filter.title, $options: 'i' };  // Case-insensitive search
+        }
+
+        if (filter.content) {   // Filter for content
+            filter.content = { $regex: filter.content, $options: 'i' };  // Case-insensitive search
+        }
+
+        // Excluding deleted posts by default
+        filter.isDeleted = false;
+
+        // Find posts with pagination and sorting
+        const posts = await Post.find(filter)
+                                .skip((page - 1) * size)
+                                .limit(size)
+                                .sort({ [sortField]: sortType });
+
+        // Count the total posts matching the filter for pagination purposes
+        const totalPosts = await Post.countDocuments(filter);
+
+        res.status(200).json({ 
+            success: true, 
+            size: size,
+            page: page,
+            totalPosts: totalPosts,
+            totalItems: Math.ceil(totalPosts / size),
+            data: posts
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+}
+
 export const getPosts = async (req, res) => {
     try {
         const posts = await Post.find({});
