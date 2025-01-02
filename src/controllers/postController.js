@@ -12,13 +12,32 @@ export const searchPosts = async (req, res) => {
         const filter = req.body;
 
         // Handling search for fields that might need regex
-        // TODO: Add more search filter for other fields
         if (filter.title) {     // Filter for title
             filter.title = { $regex: filter.title, $options: 'i' };  // Case-insensitive search
         }
 
         if (filter.content) {   // Filter for content
             filter.content = { $regex: filter.content, $options: 'i' };  // Case-insensitive search
+        }
+
+        if (filter.authorId) {  // Filter for authorId
+            filter.authorId = filter.authorId;
+        }
+
+        if (filter.categoryId) {  // Filter for categoryId
+            filter.categoryId = filter.categoryId;
+        }
+
+        if (filter.tagsId) {  // Filter for tagsId
+            filter.tagsId = { $in: filter.tagsId };
+        }
+
+        if (filter.status) {  // Filter for status
+            filter.status = filter.status;
+        }
+
+        if (filter.createdAt) {  // Filter for createdAt
+            filter.createdAt = { $gte: new Date(filter.createdAt) };
         }
 
         // Excluding deleted posts by default
@@ -28,7 +47,7 @@ export const searchPosts = async (req, res) => {
         const posts = await Post.find(filter)
                                 .skip((page - 1) * size)
                                 .limit(size)
-                                .sort({ [sortField]: sortType });
+                                .sort({ createdAt: -1 });  // Sort by createdAt in descending order
 
         // Count the total posts matching the filter for pagination purposes
         const totalPosts = await Post.countDocuments(filter);
@@ -43,7 +62,11 @@ export const searchPosts = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        res.status(500).json({ 
+            success: false,
+            message: 'Server Error',
+            error: error.message
+        });
     }
 }
 
