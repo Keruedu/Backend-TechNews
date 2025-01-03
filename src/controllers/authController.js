@@ -1,6 +1,9 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { sendEmail } from "../services/sendEmail.js";
+import crypto from "crypto";
+
 
 export const signup = async (req, res) => {
   const { username, email, password } = req.body;
@@ -61,4 +64,50 @@ export const signin = async (req, res) => {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
+};
+
+const verificationCodes = new Map();
+
+export const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ success: false, message: "User not found" });
+        }
+
+        const code = crypto.randomBytes(3).toString('hex');
+        verificationCodes.set(email, code);
+
+        await sendEmail(email, 'Password Reset Verification Code', `Your verification code is: ${code}`);
+
+        res.status(200).json({ success: true, message: "Verification code sent" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    const { email, code, newPassword } = req.body;
+
+    try {
+        const storedCode = verificationCodes.get(email);
+        if (storedCode !== code) {
+            return res.status(400).json({ success: false, message: "Invalid verification code" });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        await User.updateOne({ email }, { passwordHash });
+
+        verificationCodes.delete(email);
+
+        res.status(200).json({ success: true, message: "Password reset successfully" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
 };
