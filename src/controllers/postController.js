@@ -1,4 +1,5 @@
 import Post from "../models/postModel.js";
+import Comment from "../models/commentModel.js";
 import mongoose from 'mongoose';
 
 export const searchPosts = async (req, res) => {
@@ -47,8 +48,10 @@ export const searchPosts = async (req, res) => {
         const posts = await Post.find(filter)
                                 .skip((page - 1) * size)
                                 .limit(size)
-                                .sort({ createdAt: -1 });  // Sort by createdAt in descending order
-
+                                .sort({ createdAt: -1 })
+                                .populate('authorId', 'username profile isBanned') // Sort by createdAt in descending order
+                                .populate('categoryId', 'name slug')
+                                .populate('tagsId', 'name slug');
         // Count the total posts matching the filter for pagination purposes
         const totalPosts = await Post.countDocuments(filter);
 
@@ -69,6 +72,29 @@ export const searchPosts = async (req, res) => {
         });
     }
 }
+
+export const getPostById = async (req, res) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
+    }
+
+    try {
+        const post = await Post.findById(id)
+                               .populate('authorId', 'username profile isBanned')
+                               .populate('categoryId', 'name slug')
+                               .populate('tagsId', 'name slug');
+        if (!post) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+        res.status(200).json({ success: true, data: post });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+}
+
 
 export const getPosts = async (req, res) => {
     try {
@@ -134,14 +160,78 @@ export const deletePost = async (req, res) => {
 export const getPostComments = async (req, res) => {
     const { id } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
+    }
+
     try {
-        const post = await Post.findById(id).populate('commentsID');
-        if (!post) {
-            return res.status(404).json({ success: false, message: 'Post not found' });
+        const comments = await Comment.find({ postId: id }).populate('authorId', 'username profile isBanned');
+        if (!comments) {
+            return res.status(404).json({ success: false, message: 'Comments not found' });
         }
-        res.status(200).json({ success: true, data: post.commentsID });
+        res.status(200).json({ success: true, data: comments });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 }
+
+// Increase view count
+export const increaseViewCount = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const post = await Post.findByIdAndUpdate(postId, { $inc: { views: 1 } }, { new: true });
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found" });
+        }
+        res.status(200).json({ success: true, post });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Toggle upvote count
+export const toggleUpvoteCount = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user.id; // Assuming user ID is available in req.user
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found" });
+        }
+
+        const hasUpvoted = post.upvotedBy.includes(userId);
+        const update = hasUpvoted
+            ? { $inc: { upvotesCount: -1 }, $pull: { upvotedBy: userId } }
+            : { $inc: { upvotesCount: 1 }, $push: { upvotedBy: userId } };
+
+        const updatedPost = await Post.findByIdAndUpdate(postId, update, { new: true });
+        res.status(200).json({ success: true, post: updatedPost });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Toggle downvote count
+export const toggleDownvoteCount = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user.id; // Assuming user ID is available in req.user
+
+        const post = await Post.findById(postId);
+        if (!post) {
+            return res.status(404).json({ success: false, message: "Post not found" });
+        }
+
+        const hasDownvoted = post.downvotedBy.includes(userId);
+        const update = hasDownvoted
+            ? { $inc: { downvotesCount: -1 }, $pull: { downvotedBy: userId } }
+            : { $inc: { downvotesCount: 1 }, $push: { downvotedBy: userId } };
+
+        const updatedPost = await Post.findByIdAndUpdate(postId, update, { new: true });
+        res.status(200).json({ success: true, post: updatedPost });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

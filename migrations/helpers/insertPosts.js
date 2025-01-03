@@ -15,13 +15,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[0]], // tag JavaScript
         createdAt: new Date('2024-12-17'),
         updatedAt: new Date('2024-12-18'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "APPROVED",
-        isDeleted: false
+        isDeleted: false,
+        views: 400
       },
 
       // Test post 2: User viết, 0 hình ảnh, 1 tag, bị từ chối.
@@ -37,13 +39,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[0]], // tag JavaScript
         createdAt: new Date('2024-12-17'),
         updatedAt: new Date('2024-12-17'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 300
       },
 
       // Test post 3: User viết, 1 hình ảnh, 2 tag, đang chờ duyệt.
@@ -61,13 +65,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[0], insertedTags.insertedIds[2]], // tag JavaScript và Node.js
         createdAt: new Date('2024-12-17'),
         updatedAt: new Date('2024-12-17'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "PENDING",
-        isDeleted: false
+        isDeleted: false,
+        views: 10000,
       },
 
       // Test post 4: Manager viết, 1 hình ảnh, 2 tag, được duyệt.
@@ -85,13 +91,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[0], insertedTags.insertedIds[2]], // tag JavaScript và Node.js
         createdAt: new Date('2024-12-17'),
         updatedAt: new Date('2024-12-17'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "APPROVED",
-        isDeleted: false
+        isDeleted: false,
+        views: 10000,
       },
 
       // Test post 5: Admin viết, 1 hình ảnh, 2 tag, đang chờ duyệt.
@@ -109,13 +117,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[0], insertedTags.insertedIds[2]], // tag JavaScript và Node.js
         createdAt: new Date('2024-12-16'),
         updatedAt: new Date('2024-12-18'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "PENDING",
-        isDeleted: false
+        isDeleted: false,
+        views: 1,
       },
 
       // Test post 6: Manager viết, 0 hình ảnh, 1 tag, bị từ chối.
@@ -130,13 +140,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[3]], // tag Python
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 100,
       },
 
       // Test post 7: Manager viết, 1 hình ảnh, 1 tag, được duyệt.
@@ -154,13 +166,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[3]], // tag Python
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "APPROVED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       // Test post 8: Admin viết, 1 hình ảnh, 2 tag, được duyệt.
@@ -178,13 +192,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[3], insertedTags.insertedIds[5]], // tag Python và AI
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "APPROVED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       // Test post 9: User00 viết, 1 hình ảnh, 3 tag, đang chờ duyệt.
@@ -202,13 +218,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [insertedTags.insertedIds[3], insertedTags.insertedIds[5], insertedTags.insertedIds[6]], // tag Python, AI và Machine Learning
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "PENDING",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       // Test post 10: User01 viết, 1 hình ảnh, 0 tag, bị từ chối.
@@ -226,13 +244,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [], // tag 
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       {
@@ -249,13 +269,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [], // tag 
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       {
@@ -272,13 +294,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [], // tag 
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       {
@@ -295,13 +319,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [], // tag 
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
-        
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
       {
@@ -318,12 +344,15 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
         tagsId: [], // tag 
         createdAt: new Date('2024-12-19'),
         updatedAt: new Date('2024-12-20'),
-        upvotesCount: 10,
-        downvotesCount: 2,
+        upvotesCount: 2,
+        downvotesCount: 1,
+        upvotedBy: [insertedUsers.insertedIds[1], insertedUsers.insertedIds[3]],
+        downvotedBy: [insertedUsers.insertedIds[0]],
         totalCommentsCount: 0,
         bookmarkedByAccountId: [],
         status: "REJECTED",
-        isDeleted: false
+        isDeleted: false,
+        views: 1000,
       },
 
 
@@ -331,3 +360,6 @@ export default async function insertPosts(db, insertedUsers, insertedCategories,
   
     return await db.collection('posts').insertMany(posts);
   };
+
+
+  
