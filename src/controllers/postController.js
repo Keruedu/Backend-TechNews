@@ -1,4 +1,5 @@
 import Post from "../models/postModel.js";
+import User from '../models/userModel.js';
 import Comment from "../models/commentModel.js";
 import mongoose from 'mongoose';
 
@@ -10,46 +11,57 @@ export const searchPosts = async (req, res) => {
         const sortType = req.query.sortType === 'desc' ? -1 : 1;  // Default sorting type is ascending
 
         // Building the filter object from the request body
-        const filter = req.body;
+        const filter = {};
 
         // Handling search for fields that might need regex
-        if (filter.title) {     // Filter for title
-            filter.title = { $regex: filter.title, $options: 'i' };  // Case-insensitive search
+        if (req.body.searchQuery && req.body.searchQuery.trim()) {  // Filter for searchQuery
+            const searchRegex = { $regex: req.body.searchQuery, $options: 'i' };  // Case-insensitive search
+            filter.$or = [
+                { title: searchRegex },
+                { content: searchRegex }
+            ];
         }
 
-        if (filter.content) {   // Filter for content
-            filter.content = { $regex: filter.content, $options: 'i' };  // Case-insensitive search
+        if (req.body.title && req.body.title.trim()) {  // Filter for title
+            filter.title = { $regex: req.body.title, $options: 'i' };  // Case-insensitive search
         }
 
-        if (filter.authorId) {  // Filter for authorId
-            filter.authorId = filter.authorId;
+        if (req.body.content && req.body.content.trim()) {  // Filter for content
+            filter.content = { $regex: req.body.content, $options: 'i' };  // Case-insensitive search
         }
 
-        if (filter.categoryId) {  // Filter for categoryId
-            filter.categoryId = filter.categoryId;
+        if (req.body.authorId) {  // Filter for authorId
+            filter.authorId = req.body.authorId;
         }
 
-        if (filter.tagsId) {  // Filter for tagsId
-            filter.tagsId = { $in: filter.tagsId };
+        if (req.body.categoryIds && req.body.categoryIds.length > 0) {  // Filter for multiple categories
+            filter.categoryId = { $in: req.body.categoryIds };
         }
 
-        if (filter.status) {  // Filter for status
-            filter.status = filter.status;
+        if (req.body.tagIds && req.body.tagIds.length > 0) {  // Filter for multiple tags
+            filter.tagsId = { $in: req.body.tagIds };
         }
 
-        if (filter.createdAt) {  // Filter for createdAt
-            filter.createdAt = { $gte: new Date(filter.createdAt) };
+        if (req.body.status) {  // Filter for status
+            filter.status = req.body.status;
         }
 
-        // Excluding deleted posts by default
+        if (req.body.startDate && req.body.endDate) {  // Filter for createdAt within a time range
+            filter.createdAt = { $gte: new Date(req.body.startDate), $lte: new Date(req.body.endDate) };
+        } else if (req.body.startDate) {
+            filter.createdAt = { $gte: new Date(req.body.startDate) };
+        } else if (req.body.endDate) {
+            filter.createdAt = { $lte: new Date(req.body.endDate) };
+        }
+
         filter.isDeleted = false;
 
         // Find posts with pagination and sorting
         const posts = await Post.find(filter)
                                 .skip((page - 1) * size)
                                 .limit(size)
-                                .sort({ createdAt: -1 })
-                                .populate('authorId', 'username profile isBanned') // Sort by createdAt in descending order
+                                .sort({ [sortField]: sortType })
+                                .populate('authorId', 'username profile isBanned')
                                 .populate('categoryId', 'name slug')
                                 .populate('tagsId', 'name slug');
         // Count the total posts matching the filter for pagination purposes
@@ -209,16 +221,23 @@ export const toggleUpvoteCount = async (req, res) => {
         const userId = req.user.id; // Assuming user ID is available in req.user
 
         const post = await Post.findById(postId);
-        if (!post) {
-            return res.status(404).json({ success: false, message: "Post not found" });
+        const user = await User.findById(userId);
+        if (!post || !user) {
+            return res.status(404).json({ success: false, message: "Post or User not found" });
         }
 
         const hasUpvoted = post.upvotedBy.includes(userId);
-        const update = hasUpvoted
+        const updatePost = hasUpvoted
             ? { $inc: { upvotesCount: -1 }, $pull: { upvotedBy: userId } }
             : { $inc: { upvotesCount: 1 }, $push: { upvotedBy: userId } };
 
-        const updatedPost = await Post.findByIdAndUpdate(postId, update, { new: true });
+        const updateUser = hasUpvoted
+            ? { $pull: { upvotedPosts: postId } }
+            : { $push: { upvotedPosts: postId } };
+
+        const updatedPost = await Post.findByIdAndUpdate(postId, updatePost, { new: true });
+        await User.findByIdAndUpdate(userId, updateUser, { new: true });
+
         res.status(200).json({ success: true, post: updatedPost });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -232,17 +251,47 @@ export const toggleDownvoteCount = async (req, res) => {
         const userId = req.user.id; // Assuming user ID is available in req.user
 
         const post = await Post.findById(postId);
-        if (!post) {
-            return res.status(404).json({ success: false, message: "Post not found" });
+        const user = await User.findById(userId);
+        if (!post || !user) {
+            return res.status(404).json({ success: false, message: "Post or User not found" });
         }
 
         const hasDownvoted = post.downvotedBy.includes(userId);
-        const update = hasDownvoted
+        const updatePost = hasDownvoted
             ? { $inc: { downvotesCount: -1 }, $pull: { downvotedBy: userId } }
             : { $inc: { downvotesCount: 1 }, $push: { downvotedBy: userId } };
 
-        const updatedPost = await Post.findByIdAndUpdate(postId, update, { new: true });
+        const updateUser = hasDownvoted
+            ? { $pull: { downvotedPosts: postId } }
+            : { $push: { downvotedPosts: postId } };
+
+        const updatedPost = await Post.findByIdAndUpdate(postId, updatePost, { new: true });
+        await User.findByIdAndUpdate(userId, updateUser, { new: true });
+
         res.status(200).json({ success: true, post: updatedPost });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const toggleBookmark = async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const userId = req.user.id; // Assuming user ID is available in req.user
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const hasBookmarked = user.bookmarkedPosts.includes(postId);
+        const updateUser = hasBookmarked
+            ? { $pull: { bookmarkedPosts: postId } }
+            : { $push: { bookmarkedPosts: postId } };
+
+        await User.findByIdAndUpdate(userId, updateUser, { new: true });
+
+        res.status(200).json({ success: true, message: hasBookmarked ? 'Bookmark removed' : 'Bookmark added' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

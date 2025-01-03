@@ -1,5 +1,5 @@
 import express from 'express';
-import { createPost, deletePost, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount } from '../controllers/postController.js';
+import { createPost, deletePost, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount, toggleBookmark } from '../controllers/postController.js';
 import { uploadImage } from '../controllers/uploadController.js';
 import upload from '../config/cloudinary-config.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
@@ -20,5 +20,6 @@ router.get("/:id/comments", getPostComments); // Thêm route này
 router.patch('/:id/view', increaseViewCount);
 router.patch('/:id/upvote', authMiddleware, toggleUpvoteCount);
 router.patch('/:id/downvote', authMiddleware, toggleDownvoteCount);
+router.patch('/:id/bookmark', authMiddleware, toggleBookmark);
 
 export default router;
