@@ -114,16 +114,28 @@ export const createPost = async (req, res) => {
         return res.status(400).json({ success:false, message: 'Please enter all fields' });
     }
 
-    const newPost = new Post(post);
-
     try {
+        // Check and add new tags if they are not available
+        const tags = post.tags || [];
+        const tagIds = [];
+        for (const tagName of tags) {
+            let tag = await Tag.findOne({ name: tagName });
+            if (!tag) {
+                tag = new Tag({ name: tagName, slug: tagName.toLowerCase().replace(/ /g, '-') });
+                await tag.save();
+            }
+            tagIds.push(tag._id);
+        }
+        post.tags = tagIds;
+
+        const newPost = new Post(post);
         await newPost.save();
         res.status(201).json({ success: true, data: newPost });
-    }   catch (error) {
+    } catch (error) {
         console.error(error);
-        res.status(500 ).json({ success: false, message: 'Internal Server Error' });
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
-}
+};
 
 export const updatePost =  async (req, res) => {
     const {id} = req.params;
