@@ -1,7 +1,7 @@
 import express from 'express';
 import { createPost, deletePost, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount } from '../controllers/postController.js';
 import { uploadImage } from '../controllers/uploadController.js';
-import upload from '../services/multerService.js';
+import upload from '../config/cloudinary-config.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -10,7 +10,7 @@ router.post("/search", searchPosts); // New route for searching posts with filte
 router.get("/", getPosts);
 router.get("/:id", getPostById);
 
-router.post("/uploads", upload, uploadImage); // New route for image uploads
+router.post("/uploads", upload.single('image'), uploadImage); // New route for image uploads
 
 router.post("/", authMiddleware, createPost);
 router.put("/:id", authMiddleware, updatePost);
