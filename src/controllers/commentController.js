@@ -32,7 +32,13 @@ export const createComment = async (req, res) => {
     post.totalCommentsCount += 1;
     await post.save();
 
-    res.status(201).json({ success: true, data: newComment });
+    // Populate profileId
+    const populatedComment = await newComment.populate({
+      path: 'authorId',
+      select: 'profile'
+    });
+
+    res.status(201).json({ success: true, data: populatedComment });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });

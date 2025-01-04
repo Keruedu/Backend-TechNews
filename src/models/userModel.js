@@ -18,7 +18,9 @@ const userSchema = new mongoose.Schema({
   upvotedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
   downvotedPosts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
   profile: profileSchema,
-  isBanned: { type: Boolean, default: false }
+  isBanned: { type: Boolean, default: false },
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const User = mongoose.model("User", userSchema);
