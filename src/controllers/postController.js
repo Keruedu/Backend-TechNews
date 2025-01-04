@@ -1,6 +1,7 @@
 import Post from "../models/postModel.js";
 import Comment from "../models/commentModel.js";
 import mongoose from 'mongoose';
+import Tag from "../models/tagModel.js"; // Ensure Tag model is imported
 
 export const searchPosts = async (req, res) => {
     try {
@@ -111,7 +112,7 @@ export const createPost = async (req, res) => {
     post.authorId = req.user._id; // Gán ID người dùng từ middleware
 
     if (!post.title || !post.thumbnail || !post.content) {
-        return res.status(400).json({ success:false, message: 'Please enter all fields' });
+        return res.status(400).json({ success: false, message: 'Please enter all fields' });
     }
 
     try {
