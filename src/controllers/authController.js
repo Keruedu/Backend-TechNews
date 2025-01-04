@@ -27,7 +27,9 @@ export const signup = async (req, res) => {
     const newUser = new User({ username, email, passwordHash, profile: defaultProfile });
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    // const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET);
 
     res.status(201).json({ success: true, token, user: newUser });
   } catch (error) {
@@ -60,5 +62,30 @@ export const signin = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+export const checkToken = async (req, res) => {
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: "No token, authorization denied" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-passwordHash");
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Token is valid", user });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, message: "Token has expired" });
+    }
+    console.error(error);
+    res.status(401).json({ success: false, message: "Token is not valid" });
   }
 };
