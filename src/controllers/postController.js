@@ -3,6 +3,7 @@ import User from '../models/userModel.js';
 import Comment from "../models/commentModel.js";
 import mongoose from 'mongoose';
 import Tag from "../models/tagModel.js"; // Ensure Tag model is imported
+import Category from '../models/categoryModel.js';
 
 export const searchPosts = async (req, res) => {
     try {
@@ -120,67 +121,212 @@ export const getPosts = async (req, res) => {
 }
 
 export const createPost = async (req, res) => {
-    const post = req.body;
-    post.authorId = req.user._id; // Gán ID người dùng từ middleware
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (!post.title || !post.thumbnail || !post.content) {
-        return res.status(400).json({ success: false, message: 'Please enter all fields' });
+    try {
+        const post = req.body;
+        post.authorId = req.user._id; // Gán ID người dùng từ middleware
+
+        if (!post.title || !post.thumbnail || !post.content || !post.categoryId) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ success: false, message: 'Please enter all fields' });
+        }
+
+        // Check if category exists
+        const category = await Category.findById(post.categoryId).session(session);
+        if (!category) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ success: false, message: 'Invalid category ID' });
+        }
+
+        // Check and add new tags if they are not available
+        const tags = post.tags || [];
+        const tagIds = [];
+        for (const tagName of tags) {
+            let tag = await Tag.findOne({ name: tagName }).session(session);
+            if (!tag) {
+                tag = new Tag({ name: tagName, slug: tagName.toLowerCase().replace(/ /g, '-') });
+                await tag.save({ session });
+            }
+            tagIds.push(tag._id);
+        }
+        post.tagsId = tagIds;
+
+        const newPost = new Post(post);
+        await newPost.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(201).json({ success: true, data: newPost });
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
+};
+
+export const updatePost = async (req, res) => {
+    const { id } = req.params;
+    const post = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
     try {
         // Check and add new tags if they are not available
         const tags = post.tags || [];
         const tagIds = [];
         for (const tagName of tags) {
-            let tag = await Tag.findOne({ name: tagName });
+            let tag = await Tag.findOne({ name: tagName }).session(session);
             if (!tag) {
                 tag = new Tag({ name: tagName, slug: tagName.toLowerCase().replace(/ /g, '-') });
-                await tag.save();
+                await tag.save({ session });
             }
             tagIds.push(tag._id);
         }
-        post.tags = tagIds;
+        post.tagsId = tagIds;
 
-        const newPost = new Post(post);
-        await newPost.save();
-        res.status(201).json({ success: true, data: newPost });
+        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true }).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({ success: true, data: updatedPost });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
         console.error(error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const updatePost =  async (req, res) => {
-    const {id} = req.params;
-    const post = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
-    }
-
-    try {
-        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true });
-        res.status(200).json({ success: true, data: updatedPost });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-}
-
 export const deletePost = async (req, res) => {
-    const {id} = req.params;
+    const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(404).json({ success: false, message: 'Invalid Post ID' });
     }
 
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
-        await Post.findByIdAndDelete(id);
+        const post = await Post.findById(id).session(session);
+        if (!post) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+
+        // Xóa bookmark của người dùng đã bookmark bài viết này
+        await User.updateMany(
+            { bookmarkedPosts: id },
+            { $pull: { bookmarkedPosts: id } },
+            { session }
+        );
+
+        // Xóa upvote và downvote của người dùng đã upvote hoặc downvote bài viết này
+        await User.updateMany(
+            { upvotedPosts: id },
+            { $pull: { upvotedPosts: id } },
+            { session }
+        );
+
+        await User.updateMany(
+            { downvotedPosts: id },
+            { $pull: { downvotedPosts: id } },
+            { session }
+        );
+
+        // Xóa tất cả các comment thuộc về bài viết này
+        await Comment.deleteMany({ postId: id }).session(session);
+
+        // Xóa bài viết
+        await Post.findByIdAndDelete(id).session(session);
+
+        await session.commitTransaction();
+        session.endSession();
+
         res.status(200).json({ success: true, message: 'Post deleted' });
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
         console.error(error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
-}
+};
+
+
+export const deleteMultiplePosts = async (req, res) => {
+    const { postIds } = req.body;
+
+    if (!Array.isArray(postIds) || postIds.some(id => !mongoose.Types.ObjectId.isValid(id))) {
+        return res.status(400).json({ success: false, message: 'Invalid Post IDs' });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        for (const id of postIds) {
+            const post = await Post.findById(id).session(session);
+            if (!post) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(404).json({ success: false, message: `Post not found: ${id}` });
+            }
+
+            // Xóa bookmark của người dùng đã bookmark bài viết này
+            await User.updateMany(
+                { bookmarkedPosts: id },
+                { $pull: { bookmarkedPosts: id } },
+                { session }
+            );
+
+            // Xóa upvote và downvote của người dùng đã upvote hoặc downvote bài viết này
+            await User.updateMany(
+                { upvotedPosts: id },
+                { $pull: { upvotedPosts: id } },
+                { session }
+            );
+
+            await User.updateMany(
+                { downvotedPosts: id },
+                { $pull: { downvotedPosts: id } },
+                { session }
+            );
+
+            // Xóa tất cả các comment thuộc về bài viết này
+            await Comment.deleteMany({ postId: id }).session(session);
+
+            // Xóa bài viết
+            await Post.findByIdAndDelete(id).session(session);
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+
+        res.status(200).json({ success: true, message: 'Posts deleted' });
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+    }
+};
 
 export const getPostComments = async (req, res) => {
     const { id } = req.params;
