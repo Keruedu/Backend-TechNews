@@ -1,5 +1,5 @@
 import express from 'express';
-import { createPost, deletePost, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount, toggleBookmark } from '../controllers/postController.js';
+import { createPost, deletePost, deleteMultiplePosts, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount, toggleBookmark } from '../controllers/postController.js';
 import { uploadImage } from '../controllers/uploadController.js';
 import upload from '../config/cloudinary-config.js';
 import authMiddleware from '../middlewares/authMiddleware.js';
@@ -15,7 +15,8 @@ router.post("/uploads", upload.single('image'), uploadImage); // New route for i
 router.post("/", authMiddleware, createPost);
 router.put("/:id", authMiddleware, updatePost);
 router.delete("/:id", authMiddleware, deletePost);
-router.get("/:id/comments", getPostComments); // Thêm route này
+router.delete("/", authMiddleware, deleteMultiplePosts); // Route for deleting multiple posts
+router.get("/:id/comments", getPostComments);
 
 router.patch('/:id/view', increaseViewCount);
 router.patch('/:id/upvote', authMiddleware, toggleUpvoteCount);
