@@ -120,6 +120,7 @@ export const getPosts = async (req, res) => {
     }
 }
 
+
 export const createPost = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -127,6 +128,7 @@ export const createPost = async (req, res) => {
     try {
         const post = req.body;
         post.authorId = req.user._id; // Gán ID người dùng từ middleware
+        post.status = 'PENDING'; // Đặt trạng thái bài viết là "PENDING"
 
         if (!post.title || !post.thumbnail || !post.content || !post.categoryId) {
             await session.abortTransaction();
@@ -441,5 +443,33 @@ export const toggleBookmark = async (req, res) => {
         res.status(200).json({ success: true, message: hasBookmarked ? 'Bookmark removed' : 'Bookmark added' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const updatePostStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
+    }
+
+    if (!status) {
+        return res.status(400).json({ success: false, message: 'Status is required' });
+    }
+
+    try {
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+
+        post.status = status;
+        await post.save();
+
+        res.status(200).json({ success: true, message: `Post status updated to ${status}`, data: post });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 };

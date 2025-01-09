@@ -2,7 +2,7 @@ import express from 'express';
 import { getUsers, getUserById, updateUser, deleteUser, toggleFollow } from '../controllers/userController.js';
 import { uploadImage } from '../controllers/uploadController.js';
 import upload from '../config/cloudinary-config.js';
-import authMiddleware from '../middlewares/authMiddleware.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
