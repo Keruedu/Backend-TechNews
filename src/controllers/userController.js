@@ -81,3 +81,87 @@ export const toggleFollow = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search?.trim() || '';
+    const skip = (page - 1) * limit;
+
+    // Tạo query tìm kiếm với điều kiện chặt chẽ hơn
+    const searchQuery = search ? {
+      $or: [
+        { username: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') },
+        { 'profile.name': new RegExp(search, 'i') }
+      ]
+    } : {};
+
+    // Log để debug
+    console.log('Search term:', search);
+    console.log('Search query:', searchQuery);
+
+    const users = await User.find(searchQuery)
+      .select('-passwordHash')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(searchQuery);
+
+    // Log kết quả để debug
+    console.log('Total results:', total);
+    console.log('Results for current page:', users.length);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({ 
+      success: true, 
+      data: users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems: total,
+        itemsPerPage: limit
+      }
+    });
+  } catch (error) {
+    console.error('getAllUsers error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error',
+      error: error.message
+    });
+  }
+};
+
+export const toggleBanUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Không tìm thấy người dùng' 
+      });
+    }
+
+    user.isBanned = !user.isBanned;
+    user.updatedAt = Date.now();
+    await user.save();
+
+    res.status(200).json({ 
+      success: true, 
+      data: user,
+      message: user.isBanned ? 'Đã cấm người dùng' : 'Đã bỏ cấm người dùng'
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi server' 
+    });
+  }
+};
