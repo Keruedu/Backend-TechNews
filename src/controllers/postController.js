@@ -58,6 +58,16 @@ export const searchPosts = async (req, res) => {
 
         filter.isDeleted = false;
 
+        // Check if the request includes a userId for bookmarked posts
+        if (req.body.bookmarkedByUserId) {
+            const user = await User.findById(req.body.bookmarkedByUserId).select('bookmarkedPosts');
+            if (user) {
+                filter._id = { $in: user.bookmarkedPosts };
+            } else {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+        }
+
         // Find posts with pagination and sorting
         const posts = await Post.find(filter)
                                 .skip((page - 1) * size)
@@ -85,7 +95,7 @@ export const searchPosts = async (req, res) => {
             error: error.message
         });
     }
-}
+};
 
 export const getPostById = async (req, res) => {
     const { id } = req.params;
