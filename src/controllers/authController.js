@@ -54,13 +54,30 @@ export const signin = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid credentials" });
     }
 
+    if (user.isBanned) {
+      const admin = await User.findOne({ role: 'ADMIN' });
+      const adminContact = admin ? admin.email : 'administrator';
+      
+      return res.status(403).json({
+        success: false,
+        message: `Your account has been banned. Please contact administrator at ${adminContact}`
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: "Invalid credentials" });
     }
 
-    // const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+    // Update lastLogin field
+    user.lastLogin = new Date();
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: "1h" }
+    );
 
     res.status(200).json({ success: true, token, user });
   } catch (error) {

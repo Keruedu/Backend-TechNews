@@ -2,11 +2,50 @@ import User from "../models/userModel.js";
 
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find({});
-    res.status(200).json({ success: true, data: users });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    
+    // Tạo query tìm kiếm
+    const searchQuery = {
+      $or: [
+        { username: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { 'profile.name': { $regex: search, $options: 'i' } }
+      ]
+    };
+
+    // Đếm tổng số items
+    const totalItems = await User.countDocuments(searchQuery);
+    
+    // Tính toán skip và lấy data
+    const skip = (page - 1) * limit;
+    const users = await User.find(searchQuery)
+      .sort({ username: 1 })
+      .skip(skip)
+      .limit(limit)
+      .select('-password'); // Không trả về password
+
+    // Tính tổng số trang
+    const totalPages = Math.ceil(totalItems / limit);
+
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        limit
+      }
+    });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    console.error('Error in getUsers:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error loading accounts' 
+    });
   }
 };
 
@@ -82,86 +121,36 @@ export const toggleFollow = async (req, res) => {
   }
 };
 
-export const getAllUsers = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search?.trim() || '';
-    const skip = (page - 1) * limit;
-
-    // Tạo query tìm kiếm với điều kiện chặt chẽ hơn
-    const searchQuery = search ? {
-      $or: [
-        { username: new RegExp(search, 'i') },
-        { email: new RegExp(search, 'i') },
-        { 'profile.name': new RegExp(search, 'i') }
-      ]
-    } : {};
-
-    // Log để debug
-    console.log('Search term:', search);
-    console.log('Search query:', searchQuery);
-
-    const users = await User.find(searchQuery)
-      .select('-passwordHash')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await User.countDocuments(searchQuery);
-
-    // Log kết quả để debug
-    console.log('Total results:', total);
-    console.log('Results for current page:', users.length);
-
-    const totalPages = Math.ceil(total / limit);
-
-    res.status(200).json({ 
-      success: true, 
-      data: users,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalItems: total,
-        itemsPerPage: limit
-      }
-    });
-  } catch (error) {
-    console.error('getAllUsers error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server Error',
-      error: error.message
-    });
-  }
-};
-
 export const toggleBanUser = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const user = await User.findById(id);
+    console.log('Received toggle-ban request for user:', req.params.id); // Debug log
+
+    const user = await User.findById(req.params.id);
     if (!user) {
-      return res.status(404).json({ 
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Kiểm tra không cho phép ban ADMIN
+    if (user.role === 'ADMIN') {
+      return res.status(403).json({ 
         success: false, 
-        message: 'Không tìm thấy người dùng' 
+        message: 'Cannot ban admin users' 
       });
     }
 
+    // Toggle trạng thái và lưu vào database
     user.isBanned = !user.isBanned;
     user.updatedAt = Date.now();
     await user.save();
 
+    console.log('User ban status updated:', user.isBanned); // Debug log
     res.status(200).json({ 
       success: true, 
-      data: user,
-      message: user.isBanned ? 'Đã cấm người dùng' : 'Đã bỏ cấm người dùng'
+      message: user.isBanned ? 'User has been banned' : 'User has been unbanned',
+      isBanned: user.isBanned 
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Lỗi server' 
-    });
+    console.error('Server error:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
