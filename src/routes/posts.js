@@ -24,6 +24,6 @@ router.patch('/:id/downvote', authMiddleware, toggleDownvoteCount);
 router.patch('/:id/bookmark', authMiddleware, toggleBookmark);
 
 // New route for updating post status, protected by adminOrManagerMiddleware
-router.patch('/:id/status', authMiddleware, adminOrManagerMiddleware, updatePostStatus);
+//router.patch('/:id/status', authMiddleware, adminOrManagerMiddleware, updatePostStatus);
 
 export default router;

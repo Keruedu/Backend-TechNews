@@ -5,38 +5,51 @@ import Post from "../models/postModel.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
-    // Kiểm tra token
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-      return res.status(401).json({ success: false, message: 'No token provided' });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Tìm user và kiểm tra trạng thái banned
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // Kiểm tra nếu user bị banned
-    if (user.isBanned) {
-      return res.status(403).json({ 
+      return res.status(401).json({ 
         success: false, 
-        message: 'Your account has been banned. Please contact administrator.' 
+        message: 'No token provided' 
       });
     }
 
-    // Gán user vào request để sử dụng ở các middleware/controller tiếp theo
-    req.user = user;
-    next();
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+      
+      if (!user) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'User not found' 
+        });
+      }
+
+      if (user.isBanned) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'Your account has been banned' 
+        });
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      // Xử lý cụ thể cho lỗi token hết hạn
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Token has expired, please login again',
+          isExpired: true  // Flag để frontend biết cần redirect về login
+        });
+      }
+      throw error;  // Ném các lỗi khác để xử lý ở catch bên ngoài
+    }
   } catch (error) {
     console.error('Auth Middleware Error:', error);
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ success: false, message: 'Invalid token' });
-    }
-    res.status(500).json({ success: false, message: 'Server Error' });
+    res.status(401).json({ 
+      success: false, 
+      message: 'Invalid token' 
+    });
   }
 };
 
