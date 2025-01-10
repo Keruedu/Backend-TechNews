@@ -54,6 +54,16 @@ export const signin = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid credentials" });
     }
 
+    if (user.isBanned) {
+      const admin = await User.findOne({ role: 'ADMIN' });
+      const adminContact = admin ? admin.email : 'administrator';
+      
+      return res.status(403).json({
+        success: false,
+        message: `Your account has been banned. Please contact administrator at ${adminContact}`
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       return res.status(400).json({ success: false, message: "Invalid credentials" });
