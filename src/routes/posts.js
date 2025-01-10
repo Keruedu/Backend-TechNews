@@ -1,5 +1,5 @@
 import express from 'express';
-import { createPost, deletePost, deleteMultiplePosts, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount, toggleBookmark } from '../controllers/postController.js';
+import { createPost, deletePost, deleteMultiplePosts, getPosts, updatePost, searchPosts, getPostComments, getPostById, increaseViewCount, toggleUpvoteCount, toggleDownvoteCount, toggleBookmark, updatePostStatus } from '../controllers/postController.js';
 import { uploadImage } from '../controllers/uploadController.js';
 import upload from '../config/cloudinary-config.js';
 import { authMiddleware, adminOrManagerMiddleware, authorOrAdminOrManagerMiddleware } from '../middlewares/authMiddleware.js';
@@ -24,6 +24,6 @@ router.patch('/:id/downvote', authMiddleware, toggleDownvoteCount);
 router.patch('/:id/bookmark', authMiddleware, toggleBookmark);
 
 // New route for updating post status, protected by adminOrManagerMiddleware
-//router.patch('/:id/status', authMiddleware, adminOrManagerMiddleware, updatePostStatus);
+router.patch('/:id/status', authMiddleware, adminOrManagerMiddleware, updatePostStatus);
 
 export default router;

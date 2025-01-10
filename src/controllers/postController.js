@@ -58,6 +58,16 @@ export const searchPosts = async (req, res) => {
 
         filter.isDeleted = false;
 
+        // Check if the request includes a userId for bookmarked posts
+        if (req.body.bookmarkedByUserId) {
+            const user = await User.findById(req.body.bookmarkedByUserId).select('bookmarkedPosts');
+            if (user) {
+                filter._id = { $in: user.bookmarkedPosts };
+            } else {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+        }
+
         // Find posts with pagination and sorting
         const posts = await Post.find(filter)
                                 .skip((page - 1) * size)
@@ -85,7 +95,7 @@ export const searchPosts = async (req, res) => {
             error: error.message
         });
     }
-}
+};
 
 export const getPostById = async (req, res) => {
     const { id } = req.params;
@@ -120,6 +130,7 @@ export const getPosts = async (req, res) => {
     }
 }
 
+
 export const createPost = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -127,6 +138,7 @@ export const createPost = async (req, res) => {
     try {
         const post = req.body;
         post.authorId = req.user._id; // Gán ID người dùng từ middleware
+        post.status = 'PENDING'; // Đặt trạng thái bài viết là "PENDING"
 
         if (!post.title || !post.thumbnail || !post.content || !post.categoryId) {
             await session.abortTransaction();
@@ -441,5 +453,33 @@ export const toggleBookmark = async (req, res) => {
         res.status(200).json({ success: true, message: hasBookmarked ? 'Bookmark removed' : 'Bookmark added' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const updatePostStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
+    }
+
+    if (!status) {
+        return res.status(400).json({ success: false, message: 'Status is required' });
+    }
+
+    try {
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ success: false, message: 'Post not found' });
+        }
+
+        post.status = status;
+        await post.save();
+
+        res.status(200).json({ success: true, message: `Post status updated to ${status}`, data: post });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error', error: error.message });
     }
 };
