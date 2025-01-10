@@ -456,6 +456,63 @@ export const toggleBookmark = async (req, res) => {
     }
 };
 
+//admin
+export const getPendingPosts = async (req, res) => {
+    try {
+        const pend_posts = await Post.find({status: "APPROVED"})
+        res.status(200).json({success: true, data: pend_posts})
+    }
+    catch {
+        res.status(500).json({success: false, message: "Server Error"})
+    }
+}
+
+export const approvePost = async (req, res) => {
+    const {id} = req.params
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(404).json({ success: false, message: 'Invalid Post ID' });
+    }
+
+    try {
+        const updatedPost = await Post.findByIdAndUpdate(id, { status: 'APPROVED'});
+        res.status(200).json({ success: true, data: updatedPost });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+}
+
+export const rejectPost = async (req, res) => {
+    const {id} = req.params
+    const {reason} = req.body
+
+    try {
+        const updatePost = await Post.findByIdAndUpdate(id, {status: 'REJECTED'})
+        res.status(200).json({success: true, data: updatePost, reason})
+    }
+    catch {
+        res.status(500).json({success: false, message: "Server Error"})
+    }
+}
+
+export const getDashBoardMetrics = async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const totalPosts = await Post.countDocuments();
+        const totalPendingPosts = await Post.countDocuments({status: 'PENDING'})
+    
+        res.status(200).json({
+            success: false,
+            totalUsers,
+            totalPosts,
+            totalPendingPosts
+        })
+    }
+    catch {
+        res.status(500).json({success: false, message: 'Server Error'})
+    }
+}
+
 export const updatePostStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
