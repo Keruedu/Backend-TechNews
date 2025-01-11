@@ -154,3 +154,40 @@ export const toggleBanUser = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
+
+export const toggleRole = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // Không cho phép thay đổi role của ADMIN
+    if (user.role === 'ADMIN') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Cannot change role of an admin' 
+      });
+    }
+
+    // Chỉ toggle giữa USER và MANAGER
+    const newRole = user.role === 'USER' ? 'MANAGER' : 'USER';
+    await User.findByIdAndUpdate(user._id, { role: newRole });
+
+    res.json({ 
+      success: true, 
+      message: `User has been ${newRole === 'MANAGER' ? 'promoted to Manager' : 'demoted to User'}`,
+      user: { ...user._doc, role: newRole }
+    });
+  } catch (error) {
+    console.error('Error in toggleRole:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error updating role' 
+    });
+  }
+};

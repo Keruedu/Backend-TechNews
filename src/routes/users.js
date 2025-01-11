@@ -6,7 +6,8 @@ import {
   updateUser, 
   deleteUser, 
   toggleFollow,
-  toggleBanUser 
+  toggleBanUser,
+  toggleRole 
 } from '../controllers/userController.js';
 import { uploadImage } from '../controllers/uploadController.js';
 import upload from '../config/cloudinary-config.js';
@@ -24,5 +25,6 @@ router.get("/:id", getUserById);
 router.put("/:id", authMiddleware, updateUser);
 router.delete("/:id", authMiddleware, deleteUser);
 router.post("/:id/follow", authMiddleware, toggleFollow);
+router.patch("/:id/toggle-role", authMiddleware, adminOrManagerMiddleware, toggleRole);
 
 export default router;
