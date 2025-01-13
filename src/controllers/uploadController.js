@@ -8,6 +8,6 @@ export const uploadImage = (req, res) => {
 
   res.status(200).json({
     success: true,
-    url: req.file.path // URL của ảnh đã tải lên
+    url: req.file.path
   });
 };
