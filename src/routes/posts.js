@@ -12,8 +12,8 @@ router.get("/:id", getPostById);
 
 router.post("/uploads", upload.single('image'), uploadImage); // New route for image uploads
 
-router.post("/", authMiddleware, createPost);
-router.put("/:id", authMiddleware, authorOrAdminOrManagerMiddleware, updatePost); // Use the new middleware here
+router.post("/", upload.single('thumbnail'), authMiddleware, createPost);
+router.put("/:id", upload.single('thumbnail'), authMiddleware, authorOrAdminOrManagerMiddleware, updatePost); // Use the new middleware here
 router.delete("/:id", authMiddleware, deletePost);
 router.delete("/", authMiddleware, deleteMultiplePosts); // Route for deleting multiple posts
 router.get("/:id/comments", getPostComments);
