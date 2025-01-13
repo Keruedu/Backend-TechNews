@@ -1,4 +1,6 @@
 import User from "../models/userModel.js";
+import Post from "../models/postModel.js";
+import Category from "../models/categoryModel.js";
 
 export const getUsers = async (req, res) => {
   try {
@@ -188,6 +190,134 @@ export const toggleRole = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error updating role' 
+    });
+  }
+};
+
+export const getStatistics = async (req, res) => {
+    try {
+        // Kiểm tra quyền admin
+        if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. Admin only.'
+            });
+        }
+
+        // Thực hiện từng query riêng biệt để dễ debug
+        try {
+            const totalUsers = await User.countDocuments();
+            console.log('Total users:', totalUsers);  // Debug log
+
+            const totalPosts = await Post.countDocuments();
+            console.log('Total posts:', totalPosts);  // Debug log
+
+            const totalCategories = await Category.countDocuments();
+            console.log('Total categories:', totalCategories);  // Debug log
+
+            const adminCount = await User.countDocuments({ role: 'ADMIN' });
+            const managerCount = await User.countDocuments({ role: 'MANAGER' });
+            const userCount = await User.countDocuments({ role: 'USER' });
+            const bannedCount = await User.countDocuments({ isBanned: true });
+
+            const approvedCount = await Post.countDocuments({ status: 'APPROVED' });
+            const pendingCount = await Post.countDocuments({ status: 'PENDING' });
+            const rejectedCount = await Post.countDocuments({ status: 'REJECTED' });
+
+            const stats = {
+                totalUsers,
+                totalPosts,
+                totalCategories,
+                userStats: {
+                    admin: adminCount,
+                    manager: managerCount,
+                    user: userCount,
+                    banned: bannedCount
+                },
+                postStats: {
+                    approved: approvedCount,
+                    pending: pendingCount,
+                    rejected: rejectedCount
+                }
+            };
+
+            console.log('Stats compiled successfully:', stats);  // Debug log
+
+            return res.json({
+                success: true,
+                data: stats
+            });
+
+        } catch (dbError) {
+            console.error('Database Error:', dbError);  // Debug log
+            throw new Error(`Database operation failed: ${dbError.message}`);
+        }
+
+    } catch (error) {
+        console.error('Error in getStatistics:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching statistics',
+            error: error.message
+        });
+    }
+};
+
+export const getRegistrationStats = async (req, res) => {
+  try {
+    const { range } = req.query;
+    let startDate;
+    const now = new Date();
+
+    switch (range) {
+      case 'week':
+        startDate = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case 'month':
+        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      case 'year':
+        startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+      default:
+        startDate = new Date(now.setDate(now.getDate() - 7));
+    }
+
+    const registrations = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { "_id": 1 }
+      },
+      {
+        $project: {
+          date: "$_id",
+          count: 1,
+          _id: 0
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        registrations
+      }
+    });
+  } catch (error) {
+    console.error('Error in getRegistrationStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching registration statistics'
     });
   }
 };
