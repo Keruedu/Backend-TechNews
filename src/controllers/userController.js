@@ -266,24 +266,90 @@ export const getStatistics = async (req, res) => {
 export const getRegistrationStats = async (req, res) => {
   try {
     const { range } = req.query;
-    let startDate;
-    const now = new Date();
+    let startDate = new Date();
+    let endDate = new Date();
+
+    // Thiết lập khoảng thời gian
+    switch (range) {
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+
+    // Lấy dữ liệu từ database
+    const users = await User.find({
+      createdAt: { 
+        $gte: startDate,
+        $lte: endDate 
+      }
+    }).select('createdAt');
+
+    // Tạo map đếm số đăng ký theo ngày
+    const registrationMap = {};
+    users.forEach(user => {
+      const dateStr = user.createdAt.toISOString().split('T')[0];
+      registrationMap[dateStr] = (registrationMap[dateStr] || 0) + 1;
+    });
+
+    // Tạo mảng đầy đủ các ngày
+    const registrations = [];
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      registrations.push({
+        date: dateStr,
+        count: registrationMap[dateStr] || 0
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    console.log('Complete registrations data:', registrations); // Debug log
+
+    res.json({
+      success: true,
+      data: {
+        registrations: registrations
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getRegistrationStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching registration statistics'
+    });
+  }
+};
+
+export const getPostStats = async (req, res) => {
+  try {
+    const { range } = req.query;
+    let startDate = new Date();
 
     switch (range) {
       case 'week':
-        startDate = new Date(now.setDate(now.getDate() - 7));
+        startDate.setDate(startDate.getDate() - 7);
         break;
       case 'month':
-        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        startDate.setMonth(startDate.getMonth() - 1);
         break;
       case 'year':
-        startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        startDate.setFullYear(startDate.getFullYear() - 1);
         break;
       default:
-        startDate = new Date(now.setDate(now.getDate() - 7));
+        startDate.setDate(startDate.getDate() - 7);
     }
 
-    const registrations = await User.aggregate([
+    const postStats = await Post.aggregate([
       {
         $match: {
           createdAt: { $gte: startDate }
@@ -291,33 +357,36 @@ export const getRegistrationStats = async (req, res) => {
       },
       {
         $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          _id: '$status',
           count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { "_id": 1 }
-      },
-      {
-        $project: {
-          date: "$_id",
-          count: 1,
-          _id: 0
         }
       }
     ]);
 
+    const formattedStats = {
+      approved: 0,
+      pending: 0,
+      rejected: 0
+    };
+
+    postStats.forEach(stat => {
+      if (stat._id && formattedStats.hasOwnProperty(stat._id.toLowerCase())) {
+        formattedStats[stat._id.toLowerCase()] = stat.count;
+      }
+    });
+
     res.json({
       success: true,
       data: {
-        registrations
+        postStats: formattedStats
       }
     });
+
   } catch (error) {
-    console.error('Error in getRegistrationStats:', error);
+    console.error('Error in getPostStats:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching registration statistics'
+      message: 'Error fetching post statistics'
     });
   }
 };

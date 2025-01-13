@@ -9,7 +9,8 @@ import {
   toggleBanUser,
   toggleRole,
   getStatistics,
-  getRegistrationStats
+  getRegistrationStats,
+  getPostStats
 } from '../controllers/userController.js';
 import { uploadImage } from '../controllers/uploadController.js';
 import upload from '../config/cloudinary-config.js';
@@ -20,6 +21,7 @@ const router = express.Router();
 // Đặt các route cụ thể trước
 router.get("/statistics", authMiddleware, adminOrManagerMiddleware, getStatistics);
 router.get("/statistics/registrations", authMiddleware, adminOrManagerMiddleware, getRegistrationStats);
+router.get('/statistics/posts', authMiddleware, adminOrManagerMiddleware, getPostStats);
 router.get("/manage-accounts", authMiddleware, adminOrManagerMiddleware, getUsers);
 
 // Các route với params đặt sau
