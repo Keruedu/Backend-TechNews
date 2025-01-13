@@ -39,4 +39,7 @@ export const down = async (db, client) => {
   
   await db.collection('users').deleteMany({});
   await db.collection('users').drop();
+
+  await db.collection('posts').deleteMany({});
+  await db.collection('posts').drop();
 };

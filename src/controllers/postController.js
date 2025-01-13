@@ -151,10 +151,12 @@ export const createPost = async (req, res) => {
             session.endSession();
             return res.status(400).json({ success: false, message: 'Invalid category ID' });
         }
-
-        // Process tags
+        
         const tagIds = [];
-        for (const tagName of tags || []) {
+        // Ensure tags is an array of strings, remove extraneous characters, and filter out empty strings
+        const tagArray = Array.isArray(tags) ? tags : tags.replace(/[\[\]"]/g, '').split(',').map(tag => tag.trim()).filter(tag => tag);
+        
+        for (const tagName of tagArray) {
             let tag = await Tag.findOne({ name: tagName }).session(session);
             if (!tag) {
                 tag = new Tag({ name: tagName, slug: tagName.toLowerCase().replace(/ /g, '-') });
@@ -191,6 +193,7 @@ export const createPost = async (req, res) => {
 
 export const updatePost = async (req, res) => {
     const { id } = req.params;
+    const post = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(404).json({ success: false, message: 'Invalid Post ID' });
@@ -200,18 +203,13 @@ export const updatePost = async (req, res) => {
     session.startTransaction();
 
     try {
-        const updatedFields = req.body;
-        const thumbnail = req.file ? req.file.path : null;
-
-        // Nếu có cập nhật ảnh, thêm đường dẫn ảnh vào đối tượng cập nhật
-        if (thumbnail) {
-            updatedFields.thumbnail = thumbnail;
-        }
-
-        // Kiểm tra và thêm tag mới nếu không tồn tại
-        const tags = updatedFields.tags || [];
+        // Check and add new tags if they are not available
+        const tags = post.tags || [];
         const tagIds = [];
-        for (const tagName of tags) {
+        // Ensure tags is an array of strings, remove extraneous characters, and filter out empty strings
+        const tagArray = Array.isArray(tags) ? tags : tags.replace(/[\[\]"]/g, '').split(',').map(tag => tag.trim()).filter(tag => tag);
+
+        for (const tagName of tagArray) {
             let tag = await Tag.findOne({ name: tagName }).session(session);
             if (!tag) {
                 tag = new Tag({ name: tagName, slug: tagName.toLowerCase().replace(/ /g, '-') });
@@ -219,26 +217,9 @@ export const updatePost = async (req, res) => {
             }
             tagIds.push(tag._id);
         }
-        updatedFields.tagsId = tagIds;
+        post.tagsId = tagIds;
 
-        // Kiểm tra nếu categoryId được gửi
-        if (updatedFields.categoryId) {
-            const category = await Category.findById(updatedFields.categoryId).session(session);
-            if (!category) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.status(400).json({ success: false, message: 'Invalid category ID' });
-            }
-        }
-
-        // Cập nhật bài viết
-        const updatedPost = await Post.findByIdAndUpdate(id, updatedFields, { new: true }).session(session);
-
-        if (!updatedPost) {
-            await session.abortTransaction();
-            session.endSession();
-            return res.status(404).json({ success: false, message: 'Post not found' });
-        }
+        const updatedPost = await Post.findByIdAndUpdate(id, post, { new: true }).session(session);
 
         await session.commitTransaction();
         session.endSession();

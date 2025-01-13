@@ -91,9 +91,9 @@ export default async function insertAccounts(db) {
           isBanned: false
         },
         {
-          username: "admin01",
-          email: "admin01@technews.com",
-          passwordHash: "$2a$12$.5Rk9DxD/xjfKMD/woy8HeTQ0nd90qSn8ifoGFhdxTzqt/lZxtkda",
+          username: "vietle",
+          email: "vietle@gmail.com",
+          passwordHash: "$2b$10$1dIqV3LFEkYJ7dxwNRY83ukrb92SPCRWi6.Ec4816M.tgevefFjl.",
           role: "ADMIN",
           createdAt: new Date("2024-12-14"),
           updatedAt: new Date("2024-12-15"),
@@ -107,7 +107,7 @@ export default async function insertAccounts(db) {
             bio: "Tài khoản adminstrator thứ hai"
           },
           isBanned: false
-        }
+        },
       ];
   
     return await db.collection('users').insertMany(users);
