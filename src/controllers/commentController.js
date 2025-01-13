@@ -1,5 +1,6 @@
 import Comment from "../models/commentModel.js";
 import Post from "../models/postModel.js";
+import Notification from "../models/notificationModel.js";
 
 export const getComments = async (req, res) => {
   try {
@@ -19,18 +20,29 @@ export const createComment = async (req, res) => {
   }
 
   try {
-    
     const newComment = new Comment({ content, authorId: req.user._id, postId });
     await newComment.save();
 
     // Cập nhật bài viết với bình luận mới
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate('authorId');
     if (!post.commentsID) {
       post.commentsID = [];
     }
     post.commentsID.push(newComment._id);
     post.totalCommentsCount += 1;
     await post.save();
+
+    // Create a notification for the post author
+    if (post.authorId._id.toString() !== req.user._id.toString()) {
+      const notification = new Notification({
+        userId: post.authorId._id,
+        message: `User ${req.user.username} commented on your post.`,
+        type: 'COMMENT',
+        url: `/post/${postId}`,
+        createdAt: new Date()
+      });
+      await notification.save();
+    }
 
     // Populate profileId
     const populatedComment = await newComment.populate({
