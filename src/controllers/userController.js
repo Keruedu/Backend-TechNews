@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import Post from "../models/postModel.js";
 import Category from "../models/categoryModel.js";
+import Tag from "../models/tagModel.js";
 
 export const getUsers = async (req, res) => {
   try {
@@ -215,6 +216,9 @@ export const getStatistics = async (req, res) => {
             const totalCategories = await Category.countDocuments();
             console.log('Total categories:', totalCategories);  // Debug log
 
+            const totalTags = await Tag.countDocuments();
+            console.log('Total tags:', totalTags);  // Debug log
+
             const adminCount = await User.countDocuments({ role: 'ADMIN' });
             const managerCount = await User.countDocuments({ role: 'MANAGER' });
             const userCount = await User.countDocuments({ role: 'USER' });
@@ -228,6 +232,7 @@ export const getStatistics = async (req, res) => {
                 totalUsers,
                 totalPosts,
                 totalCategories,
+                totalTags,
                 userStats: {
                     admin: adminCount,
                     manager: managerCount,
