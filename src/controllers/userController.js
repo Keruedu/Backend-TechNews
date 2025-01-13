@@ -1,4 +1,7 @@
 import User from "../models/userModel.js";
+import Post from "../models/postModel.js";
+import Category from "../models/categoryModel.js";
+import Tag from "../models/tagModel.js";
 
 export const getUsers = async (req, res) => {
   try {
@@ -188,6 +191,207 @@ export const toggleRole = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error updating role' 
+    });
+  }
+};
+
+export const getStatistics = async (req, res) => {
+    try {
+        // Kiểm tra quyền admin
+        if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. Admin only.'
+            });
+        }
+
+        // Thực hiện từng query riêng biệt để dễ debug
+        try {
+            const totalUsers = await User.countDocuments();
+            console.log('Total users:', totalUsers);  // Debug log
+
+            const totalPosts = await Post.countDocuments();
+            console.log('Total posts:', totalPosts);  // Debug log
+
+            const totalCategories = await Category.countDocuments();
+            console.log('Total categories:', totalCategories);  // Debug log
+
+            const totalTags = await Tag.countDocuments();
+            console.log('Total tags:', totalTags);  // Debug log
+
+            const adminCount = await User.countDocuments({ role: 'ADMIN' });
+            const managerCount = await User.countDocuments({ role: 'MANAGER' });
+            const userCount = await User.countDocuments({ role: 'USER' });
+            const bannedCount = await User.countDocuments({ isBanned: true });
+
+            const approvedCount = await Post.countDocuments({ status: 'APPROVED' });
+            const pendingCount = await Post.countDocuments({ status: 'PENDING' });
+            const rejectedCount = await Post.countDocuments({ status: 'REJECTED' });
+
+            const stats = {
+                totalUsers,
+                totalPosts,
+                totalCategories,
+                totalTags,
+                userStats: {
+                    admin: adminCount,
+                    manager: managerCount,
+                    user: userCount,
+                    banned: bannedCount
+                },
+                postStats: {
+                    approved: approvedCount,
+                    pending: pendingCount,
+                    rejected: rejectedCount
+                }
+            };
+
+            console.log('Stats compiled successfully:', stats);  // Debug log
+
+            return res.json({
+                success: true,
+                data: stats
+            });
+
+        } catch (dbError) {
+            console.error('Database Error:', dbError);  // Debug log
+            throw new Error(`Database operation failed: ${dbError.message}`);
+        }
+
+    } catch (error) {
+        console.error('Error in getStatistics:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching statistics',
+            error: error.message
+        });
+    }
+};
+
+export const getRegistrationStats = async (req, res) => {
+  try {
+    const { range } = req.query;
+    let startDate = new Date();
+    let endDate = new Date();
+
+    // Thiết lập khoảng thời gian
+    switch (range) {
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+
+    // Lấy dữ liệu từ database
+    const users = await User.find({
+      createdAt: { 
+        $gte: startDate,
+        $lte: endDate 
+      }
+    }).select('createdAt');
+
+    // Tạo map đếm số đăng ký theo ngày
+    const registrationMap = {};
+    users.forEach(user => {
+      const dateStr = user.createdAt.toISOString().split('T')[0];
+      registrationMap[dateStr] = (registrationMap[dateStr] || 0) + 1;
+    });
+
+    // Tạo mảng đầy đủ các ngày
+    const registrations = [];
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      registrations.push({
+        date: dateStr,
+        count: registrationMap[dateStr] || 0
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    console.log('Complete registrations data:', registrations); // Debug log
+
+    res.json({
+      success: true,
+      data: {
+        registrations: registrations
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getRegistrationStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching registration statistics'
+    });
+  }
+};
+
+export const getPostStats = async (req, res) => {
+  try {
+    const { range } = req.query;
+    let startDate = new Date();
+
+    switch (range) {
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      default:
+        startDate.setDate(startDate.getDate() - 7);
+    }
+
+    const postStats = await Post.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const formattedStats = {
+      approved: 0,
+      pending: 0,
+      rejected: 0
+    };
+
+    postStats.forEach(stat => {
+      if (stat._id && formattedStats.hasOwnProperty(stat._id.toLowerCase())) {
+        formattedStats[stat._id.toLowerCase()] = stat.count;
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        postStats: formattedStats
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getPostStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching post statistics'
     });
   }
 };

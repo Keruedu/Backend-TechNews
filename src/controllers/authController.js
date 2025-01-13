@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import { sendEmail } from "../services/sendEmail.js";
 import crypto from "crypto";
 
-
 export const signup = async (req, res) => {
   const { username, email, password } = req.body;
 
